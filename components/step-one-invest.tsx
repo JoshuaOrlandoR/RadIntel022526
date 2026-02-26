@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ArrowUpDown } from "lucide-react"
 import {
   FALLBACK_CONFIG,
@@ -12,8 +12,20 @@ import {
   type InvestmentConfig,
 } from "@/lib/investment-utils"
 
+interface InvestorData {
+  investorId: number
+  email: string
+}
+
+interface ExistingInvestment {
+  id: string
+  state: string
+  amount: number
+  shares: number
+}
+
 interface StepOneInvestProps {
-  onContinue: (amount: number) => void
+  onContinue: (amount: number, investor: InvestorData) => void
   initialAmount?: number
   config?: InvestmentConfig
 }
@@ -26,10 +38,40 @@ export function StepOneInvest({ onContinue, initialAmount, config = FALLBACK_CON
   const [rawInput, setRawInput] = useState("")
   const [isInputFocused, setIsInputFocused] = useState(false)
 
+  // Email and submission state
+  const [email, setEmail] = useState("")
+  const [emailError, setEmailError] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState("")
+  
+  // Existing investments (for resume flow)
+  const [existingInvestments, setExistingInvestments] = useState<ExistingInvestment[]>([])
+  const [showExisting, setShowExisting] = useState(false)
+  const [resumeRedirecting, setResumeRedirecting] = useState<string | null>(null)
+
+  // UTM params
+  const [utmParams, setUtmParams] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search)
+      const utm: Record<string, string> = {}
+      if (params.get("utm_source")) utm.utm_source = params.get("utm_source")!
+      if (params.get("utm_medium")) utm.utm_medium = params.get("utm_medium")!
+      if (params.get("utm_campaign")) utm.utm_campaign = params.get("utm_campaign")!
+      if (params.get("utm_content")) utm.utm_content = params.get("utm_content")!
+      if (params.get("utm_term")) utm.utm_term = params.get("utm_term")!
+      setUtmParams(utm)
+    }
+  }, [])
+
+  const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
+
   const calculation = calculateInvestment(amount, config)
   const isAboveMin = amount >= config.minInvestment
   const isBelowMax = !config.maxInvestment || amount <= config.maxInvestment
   const isValidAmount = isAboveMin && isBelowMax
+  const isFormValid = isValidAmount && email.trim() !== "" && isValidEmail(email)
   const nextTier = getNextTierInfo(amount, config)
   const showUpsell = nextTier && nextTier.amountNeeded <= 2000 && amount < 25000
 
@@ -106,6 +148,128 @@ export function StepOneInvest({ onContinue, initialAmount, config = FALLBACK_CON
   const handleUpsellAccept = () => {
     if (nextTier) {
       setAmount(nextTier.threshold)
+    }
+  }
+
+  const handleContinueClick = async () => {
+    // Validate email
+    if (!email.trim()) {
+      setEmailError("Email is required")
+      return
+    }
+    if (!isValidEmail(email)) {
+      setEmailError("Please enter a valid email address")
+      return
+    }
+    setEmailError("")
+    setSubmitError("")
+    setIsSubmitting(true)
+
+    try {
+      const res = await fetch("/api/investor/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          investmentAmount: amount,
+          ...utmParams,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setSubmitError(data.error || "Something went wrong. Please try again.")
+        setIsSubmitting(false)
+        return
+      }
+
+      if (data.existingInvestments && data.investments?.length > 0) {
+        // Show existing investments for resume
+        setExistingInvestments(data.investments)
+        setShowExisting(true)
+        setIsSubmitting(false)
+        return
+      }
+
+      // Investor created successfully - fire dataLayer event
+      if (typeof window !== "undefined") {
+        (window as Record<string, unknown[]>).dataLayer = (window as Record<string, unknown[]>).dataLayer || []
+        ;(window as Record<string, unknown[]>).dataLayer.push({
+          event: "investor_created",
+          investmentAmount: amount,
+          investorType: "individual",
+          currency: "USD",
+        })
+      }
+
+      // Continue to Step 2
+      onContinue(amount, { investorId: data.investorId, email })
+    } catch {
+      setSubmitError("Unable to connect. Please try again.")
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleResumeSelect = async (investorId: string) => {
+    setResumeRedirecting(investorId)
+    try {
+      const res = await fetch(`/api/investor/resume/${investorId}`)
+      const data = await res.json()
+      if (data.accessLink) {
+        window.location.href = data.accessLink
+      } else {
+        setSubmitError("Unable to get access link. Please try again.")
+        setResumeRedirecting(null)
+      }
+    } catch {
+      setSubmitError("Unable to resume. Please try again.")
+      setResumeRedirecting(null)
+    }
+  }
+
+  const handleStartNew = async () => {
+    setShowExisting(false)
+    setExistingInvestments([])
+    setIsSubmitting(true)
+    setSubmitError("")
+
+    try {
+      const res = await fetch("/api/investor/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          investmentAmount: amount,
+          forceCreate: true,
+          ...utmParams,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setSubmitError(data.error || "Something went wrong. Please try again.")
+        setIsSubmitting(false)
+        return
+      }
+
+      // Fire dataLayer event
+      if (typeof window !== "undefined") {
+        (window as Record<string, unknown[]>).dataLayer = (window as Record<string, unknown[]>).dataLayer || []
+        ;(window as Record<string, unknown[]>).dataLayer.push({
+          event: "investor_created",
+          investmentAmount: amount,
+          investorType: "individual",
+          currency: "USD",
+        })
+      }
+
+      // Continue to Step 2
+      onContinue(amount, { investorId: data.investorId, email })
+    } catch {
+      setSubmitError("Unable to connect. Please try again.")
+      setIsSubmitting(false)
     }
   }
 
@@ -264,14 +428,75 @@ export function StepOneInvest({ onContinue, initialAmount, config = FALLBACK_CON
             All shares assume conversion of convertible notes into stock at ~{formatCurrency(config.sharePrice, 2)}/share. Final share price will be based on a number of factors.
           </p>
 
+          {/* Email Input */}
+          <div className="step1-email mb-4">
+            <label htmlFor="email" className="block text-sm text-[#666] mb-1.5">
+              Email Address
+            </label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                if (emailError) setEmailError("")
+              }}
+              placeholder="Enter your email"
+              className="w-full px-4 py-3 text-[0.9375rem] border border-[#e0e0e0] rounded-lg bg-white text-[#1a1a1a] focus:outline-none focus:border-[#c96b4b] focus:ring-2 focus:ring-[#c96b4b]/20"
+            />
+            {emailError && <p className="text-red-500 text-xs mt-1">{emailError}</p>}
+          </div>
+
+          {/* Error Message */}
+          {submitError && (
+            <p className="text-red-500 text-sm mb-3">{submitError}</p>
+          )}
+
+          {/* Existing Investments Modal */}
+          {showExisting && existingInvestments.length > 0 && (
+            <div className="bg-[#faf9f7] border border-[#e8e4e0] rounded-lg p-4 mb-4">
+              <p className="text-sm text-[#666] mb-3">
+                We found {existingInvestments.length} existing investment{existingInvestments.length > 1 ? "s" : ""} for this email. Resume one or start new:
+              </p>
+              <div className="space-y-2 mb-3">
+                {existingInvestments.map((inv) => (
+                  <button
+                    key={inv.id}
+                    type="button"
+                    onClick={() => handleResumeSelect(inv.id)}
+                    disabled={resumeRedirecting !== null}
+                    className="w-full p-3 border border-gray-200 rounded-lg text-left bg-white hover:border-[#c96b4b] hover:bg-[#c96b4b]/5 transition-colors disabled:opacity-50"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-semibold text-[#1a1a1a]">
+                        ${inv.amount?.toLocaleString() || "—"}
+                      </span>
+                      <span className="text-xs text-gray-400 capitalize">{inv.state}</span>
+                    </div>
+                    {resumeRedirecting === inv.id && (
+                      <p className="text-xs text-[#c96b4b] mt-1">Redirecting...</p>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={handleStartNew}
+                className="text-sm text-[#c96b4b] hover:underline"
+              >
+                Start a new investment instead
+              </button>
+            </div>
+          )}
+
           {/* Continue Button - Hidden on mobile, shown in sticky bar */}
           <button
             type="button"
-            onClick={() => onContinue(amount)}
-            disabled={!isValidAmount}
+            onClick={handleContinueClick}
+            disabled={!isFormValid || isSubmitting || showExisting}
             className="step1-continue step1-continue--desktop hidden md:block w-full py-3 rounded-lg text-[0.9375rem] font-medium bg-[#c96b4b] text-white hover:bg-[#b85d40] disabled:bg-[#ccc] disabled:cursor-not-allowed transition-colors"
           >
-            Continue
+            {isSubmitting ? "Processing..." : "Continue"}
           </button>
         </div>
       </div>
@@ -293,11 +518,11 @@ export function StepOneInvest({ onContinue, initialAmount, config = FALLBACK_CON
         </div>
         <button
           type="button"
-          onClick={() => onContinue(amount)}
-          disabled={!isValidAmount}
+          onClick={handleContinueClick}
+          disabled={!isFormValid || isSubmitting || showExisting}
           className="step1-mobile-bar__btn w-full py-3 rounded-lg text-sm font-medium bg-[#c96b4b] text-white hover:bg-[#b85d40] disabled:bg-[#ccc] disabled:cursor-not-allowed transition-colors"
         >
-          Continue
+          {isSubmitting ? "Processing..." : "Continue"}
         </button>
       </div>
     </div>

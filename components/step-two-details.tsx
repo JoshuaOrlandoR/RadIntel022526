@@ -12,6 +12,8 @@ import {
 
 interface StepTwoDetailsProps {
   initialAmount: number
+  investorId?: number
+  investorEmail?: string
   onBack: () => void
   onContinue: (amount: number) => void
   config?: InvestmentConfig
@@ -19,7 +21,24 @@ interface StepTwoDetailsProps {
 
 type Section = "investment" | "contact" | "confirmation" | "payment"
 
-export function StepTwoDetails({ initialAmount, onBack, onContinue, config = FALLBACK_CONFIG }: StepTwoDetailsProps) {
+export function StepTwoDetails({ initialAmount, investorId, investorEmail, onBack, onContinue, config = FALLBACK_CONFIG }: StepTwoDetailsProps) {
+  // Guard: if no investorId, redirect back to Step 1
+  if (!investorId || !investorEmail) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#faf9f7]">
+        <div className="text-center p-6">
+          <p className="text-[#666] mb-4">Please start from the beginning.</p>
+          <button
+            onClick={onBack}
+            className="px-6 py-2 bg-[#c96b4b] text-white rounded-lg font-medium hover:bg-[#b85d40] transition-colors"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const [amount, setAmount] = useState(initialAmount)
   const [shares, setShares] = useState(() => {
     const calc = calculateInvestment(initialAmount, config)
@@ -32,7 +51,7 @@ export function StepTwoDetails({ initialAmount, onBack, onContinue, config = FAL
   const [investorType, setInvestorType] = useState("individual")
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
-  const [email, setEmail] = useState("")
+  const [email, setEmail] = useState(investorEmail || "")
   // Type-specific fields
   const [jointFirstName, setJointFirstName] = useState("")
   const [jointLastName, setJointLastName] = useState("")
@@ -44,87 +63,23 @@ export function StepTwoDetails({ initialAmount, onBack, onContinue, config = FAL
   const [contactErrors, setContactErrors] = useState<{ firstName?: string; lastName?: string; email?: string }>({})
   const [contactTouched, setContactTouched] = useState<{ firstName?: boolean; lastName?: boolean; email?: boolean }>({})
 
-  // Resume investment state
-  const [showResume, setShowResume] = useState(false)
-  const [resumeEmail, setResumeEmail] = useState("")
-  const [resumeLoading, setResumeLoading] = useState(false)
-  const [resumeResult, setResumeResult] = useState<{ 
-    found: boolean
-    investments?: Array<{ id: string; state: string; amount: number; shares: number; name?: string; createdAt?: string }>
-  } | null>(null)
-  const [resumeRedirecting, setResumeRedirecting] = useState<string | null>(null)
-  const [resumeError, setResumeError] = useState("")
-
-  const handleResumeCheck = async () => {
-    if (!resumeEmail.trim() || !isValidEmail(resumeEmail)) {
-      setResumeError("Please enter a valid email address.")
-      return
-    }
-    setResumeLoading(true)
-    setResumeError("")
-    setResumeResult(null)
-    try {
-      const res = await fetch("/api/investor/resume", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: resumeEmail }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setResumeError(data.error || "Something went wrong. Please try again.")
-      } else if (data.found && data.investments?.length > 0) {
-        setResumeResult({ found: true, investments: data.investments })
-      } else {
-        setResumeResult({ found: false })
-      }
-    } catch {
-      setResumeError("Unable to check. Please try again.")
-    } finally {
-      setResumeLoading(false)
-    }
-  }
-
-  const handleResumeSelect = async (investorId: string) => {
-    setResumeRedirecting(investorId)
-    setResumeError("")
-    try {
-      const res = await fetch(`/api/investor/resume/${investorId}`)
-      const data = await res.json()
-      if (!res.ok) {
-        setResumeError(data.error || "Unable to resume. Please try again.")
-        setResumeRedirecting(null)
-      } else if (data.accessLink) {
-        window.location.href = data.accessLink
-      } else {
-        setResumeError("Unable to get access link. Please try again.")
-        setResumeRedirecting(null)
-      }
-    } catch {
-      setResumeError("Unable to resume. Please try again.")
-      setResumeRedirecting(null)
-    }
-  }
-
   const calculation = calculateInvestment(amount, config)
 
-  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
 
   const validateContact = (): boolean => {
     const errors: typeof contactErrors = {}
     if (!firstName.trim()) errors.firstName = "First name is required"
     if (!lastName.trim()) errors.lastName = "Last name is required"
-    if (!email.trim()) {
-      errors.email = "Email is required"
-    } else if (!isValidEmail(email)) {
-      errors.email = "Please enter a valid email address"
-    }
+    // Email is pre-filled from Step 1, no need to validate
     setContactErrors(errors)
-    setContactTouched({ firstName: true, lastName: true, email: true })
+    setContactTouched({ firstName: true, lastName: true })
     return Object.keys(errors).length === 0
   }
 
   const isContactComplete = (() => {
-    const baseComplete = firstName.trim() !== "" && lastName.trim() !== "" && email.trim() !== "" && isValidEmail(email)
+    // Email is pre-filled from Step 1, just need name fields
+    const baseComplete = firstName.trim() !== "" && lastName.trim() !== ""
     if (!baseComplete) return false
     switch (investorType) {
       case "joint": return jointFirstName.trim() !== "" && jointLastName.trim() !== ""
@@ -192,88 +147,6 @@ export function StepTwoDetails({ initialAmount, onBack, onContinue, config = FAL
           </button>
           <span className="text-xs text-[#888] font-medium">Step 2 of 2</span>
         </div>
-        {/* Resume Investment Prompt */}
-        <div className="mb-3">
-          {!showResume ? (
-            <button
-              type="button"
-              onClick={() => setShowResume(true)}
-              className="text-sm text-[#c96b4b] hover:text-[#b85d40] font-medium transition-colors"
-            >
-              Already started an investment? Click here to resume.
-            </button>
-          ) : (
-            <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-              <p className="text-sm font-medium text-[#1a1a1a] mb-2">Resume your investment</p>
-              <p className="text-xs text-gray-500 mb-3">Enter the email you used when you started your investment.</p>
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  value={resumeEmail}
-                  onChange={(e) => { setResumeEmail(e.target.value); setResumeError(""); setResumeResult(null) }}
-                  placeholder="Enter your email"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-[#1a1a1a] bg-white focus:outline-none focus:border-[#c96b4b] focus:ring-2 focus:ring-[#c96b4b]/15"
-                  onKeyDown={(e) => { if (e.key === "Enter") handleResumeCheck() }}
-                />
-                <button
-                  type="button"
-                  onClick={handleResumeCheck}
-                  disabled={resumeLoading}
-                  className="px-4 py-2 bg-[#c96b4b] text-white rounded-lg text-sm font-medium hover:bg-[#b85d40] disabled:bg-[#ccc] disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-                >
-                  {resumeLoading ? "Checking..." : "Resume"}
-                </button>
-              </div>
-              {resumeError && (
-                <p className="text-xs text-red-500 mt-2">{resumeError}</p>
-              )}
-              {resumeResult && !resumeResult.found && (
-                <p className="text-xs text-gray-500 mt-2">No existing investment found for this email. You can start a new investment below.</p>
-              )}
-              {resumeResult && resumeResult.found && resumeResult.investments && resumeResult.investments.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  <p className="text-xs text-gray-500 mb-2">
-                    {resumeResult.investments.length === 1 
-                      ? "We found your investment. Click to resume:" 
-                      : `We found ${resumeResult.investments.length} investments. Select one to resume:`}
-                  </p>
-                  {resumeResult.investments.map((inv) => (
-                    <button
-                      key={inv.id}
-                      type="button"
-                      onClick={() => handleResumeSelect(inv.id)}
-                      disabled={resumeRedirecting !== null}
-                      className="w-full p-3 border border-gray-200 rounded-lg text-left hover:border-[#c96b4b] hover:bg-[#c96b4b]/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="text-sm font-semibold text-[#1a1a1a]">
-                            ${inv.amount?.toLocaleString() || "—"}
-                          </span>
-                          <span className="text-xs text-gray-400 ml-2">
-                            ({inv.shares?.toLocaleString() || "—"} shares)
-                          </span>
-                        </div>
-                        <span className="text-xs text-gray-400 capitalize">{inv.state}</span>
-                      </div>
-                      {resumeRedirecting === inv.id && (
-                        <p className="text-xs text-[#c96b4b] mt-1">Redirecting...</p>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => { setShowResume(false); setResumeEmail(""); setResumeResult(null); setResumeError(""); setResumeRedirecting(null) }}
-                className="text-xs text-gray-400 hover:text-gray-600 mt-2 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-        </div>
-
         {/* Main Card */}
         <div className="step2-card bg-white rounded-2xl md:rounded-3xl overflow-hidden shadow-sm border-2 border-[#c96b4b]">
           
@@ -481,33 +354,12 @@ export function StepTwoDetails({ initialAmount, onBack, onContinue, config = FAL
                       <input
                         type="email"
                         value={email}
-                        onChange={(e) => {
-                          setEmail(e.target.value)
-                          if (contactTouched.email) {
-                            if (!e.target.value.trim()) {
-                              setContactErrors((prev) => ({ ...prev, email: "Email is required" }))
-                            } else if (!isValidEmail(e.target.value)) {
-                              setContactErrors((prev) => ({ ...prev, email: "Please enter a valid email address" }))
-                            } else {
-                              setContactErrors((prev) => ({ ...prev, email: undefined }))
-                            }
-                          }
-                        }}
-                        onBlur={() => {
-                          setContactTouched((prev) => ({ ...prev, email: true }))
-                          if (!email.trim()) {
-                            setContactErrors((prev) => ({ ...prev, email: "Email is required" }))
-                          } else if (!isValidEmail(email)) {
-                            setContactErrors((prev) => ({ ...prev, email: "Please enter a valid email address" }))
-                          }
-                        }}
+                        readOnly
                         placeholder="Email *"
-                        className="step2-contact-field__input text-left bg-transparent border-none text-[#1a1a1a] text-base focus:outline-none w-full placeholder:text-gray-400"
+                        className="step2-contact-field__input text-left bg-transparent border-none text-[#1a1a1a] text-base focus:outline-none w-full placeholder:text-gray-400 cursor-not-allowed opacity-75"
                       />
                     </div>
-                    {contactTouched.email && contactErrors.email && (
-                      <p className="text-xs text-red-500 mt-1">{contactErrors.email}</p>
-                    )}
+                    <p className="text-xs text-gray-400 mt-1">Email was provided in the previous step</p>
                   </div>
 
                   {/* Joint: joint holder name fields */}
@@ -722,15 +574,15 @@ export function StepTwoDetails({ initialAmount, onBack, onContinue, config = FAL
                       setSubmitError("")
                       setIsSubmitting(true)
                       try {
-                        const res = await fetch("/api/investor", {
+                        const res = await fetch("/api/investor/complete", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({
+                            investorId,
                             email,
                             firstName,
                             lastName,
                             investorType,
-                            investmentAmount: amount,
                             ...(investorType === "joint" && { jointFirstName, jointLastName }),
                             ...(investorType === "corporation" && { corporationName }),
                             ...(investorType === "trust" && { trustName }),
@@ -740,17 +592,6 @@ export function StepTwoDetails({ initialAmount, onBack, onContinue, config = FAL
                         if (!res.ok) {
                           setSubmitError(data.error || "Failed to complete investment. Please try again.")
                         } else {
-                          // GTM dataLayer: TOFU event fires when investor record is confirmed created
-                          if (typeof window !== "undefined") {
-                            (window as Record<string, unknown[]>).dataLayer = (window as Record<string, unknown[]>).dataLayer || []
-                            ;(window as Record<string, unknown[]>).dataLayer.push({
-                              event: "investor_created",
-                              investmentAmount: amount,
-                              investorType,
-                              currency: "USD",
-                            })
-                          }
-
                           if (data.paymentUrl) {
                             // Redirect to DealMaker's hosted payment page
                             window.location.href = data.paymentUrl

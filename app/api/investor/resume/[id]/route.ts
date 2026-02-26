@@ -23,7 +23,7 @@ export async function GET(
   }
 
   try {
-    const link = await getInvestorAccessLink(dealId, investorId)
+    const link = await getInvestorAccessLink(dealId, parseInt(investorId, 10))
     return NextResponse.json({
       accessLink: link.access_link || null,
     })

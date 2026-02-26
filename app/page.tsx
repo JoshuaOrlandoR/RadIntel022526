@@ -5,11 +5,17 @@ import { StepOneInvest } from "@/components/step-one-invest"
 import { StepTwoDetails } from "@/components/step-two-details"
 import { FALLBACK_CONFIG, type InvestmentConfig } from "@/lib/investment-utils"
 
+interface InvestorData {
+  investorId: number
+  email: string
+}
+
 export default function InvestmentPage() {
   const [step, setStep] = useState(1)
   const [config, setConfig] = useState<InvestmentConfig>(FALLBACK_CONFIG)
   const [configLoaded, setConfigLoaded] = useState(false)
   const [selectedAmount, setSelectedAmount] = useState(FALLBACK_CONFIG.presetAmounts[0])
+  const [investorData, setInvestorData] = useState<InvestorData | null>(null)
 
   useEffect(() => {
     fetch("/api/deal")
@@ -24,8 +30,9 @@ export default function InvestmentPage() {
       .finally(() => setConfigLoaded(true))
   }, [])
 
-  const handleContinueFromStepOne = (amount: number) => {
+  const handleContinueFromStepOne = (amount: number, investor: InvestorData) => {
     setSelectedAmount(amount)
+    setInvestorData(investor)
     setStep(2)
   }
 
@@ -34,7 +41,7 @@ export default function InvestmentPage() {
   }
 
   const handleContinueToPayment = (amount: number) => {
-    // Payment flow
+    // Payment flow handled in StepTwoDetails
   }
 
   if (!configLoaded) {
@@ -61,6 +68,8 @@ export default function InvestmentPage() {
   return (
     <StepTwoDetails
       initialAmount={selectedAmount}
+      investorId={investorData?.investorId}
+      investorEmail={investorData?.email}
       onBack={handleBackToStepOne}
       onContinue={handleContinueToPayment}
       config={config}

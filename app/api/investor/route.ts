@@ -8,6 +8,7 @@ import {
   isDealmakerConfigured,
   type DealMakerApiError,
   type InvestorType,
+  type UtmParams,
 } from "@/lib/dealmaker"
 
 export async function POST(request: Request) {
@@ -58,8 +59,16 @@ export async function POST(request: Request) {
     const profile = await createInvestorProfile(investorType, profileData)
     console.log("[v0] Profile created:", JSON.stringify(profile))
 
-    // 2. Create the deal investor with the profile ID
-    console.log("[v0] Creating deal investor with profile_id:", profile.id)
+    // 2. Extract UTM params from request body
+    const utmParams: UtmParams = {}
+    if (body.utm_source) utmParams.utm_source = body.utm_source
+    if (body.utm_medium) utmParams.utm_medium = body.utm_medium
+    if (body.utm_campaign) utmParams.utm_campaign = body.utm_campaign
+    if (body.utm_content) utmParams.utm_content = body.utm_content
+    if (body.utm_term) utmParams.utm_term = body.utm_term
+
+    // 3. Create the deal investor with the profile ID and UTM params
+    console.log("[v0] Creating deal investor with profile_id:", profile.id, "UTM:", utmParams)
     const investor = await createDealInvestor(dealId, {
       email: body.email,
       first_name: body.firstName,
@@ -67,7 +76,7 @@ export async function POST(request: Request) {
       investment_value: body.investmentAmount,
       allocation_unit: "amount",
       investor_profile_id: profile.id,
-    })
+    }, utmParams)
     console.log("[v0] Investor created:", JSON.stringify(investor))
 
     // Get DealMaker's OTP access link for the investor to complete payment

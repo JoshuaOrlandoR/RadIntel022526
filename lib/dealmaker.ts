@@ -156,6 +156,14 @@ export async function createInvestorProfile(
   })
 }
 
+export interface UtmParams {
+  utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
+  utm_content?: string
+  utm_term?: string
+}
+
 export async function createDealInvestor(
   dealId: string,
   data: {
@@ -165,11 +173,21 @@ export async function createDealInvestor(
     investment_value: number
     allocation_unit?: string
     investor_profile_id?: number
-  }
+  },
+  utmParams?: UtmParams
 ): Promise<DealInvestor> {
+  // Build UTM headers for DealMaker's UtmExtractorMiddleware
+  const utmHeaders: Record<string, string> = {}
+  if (utmParams?.utm_source) utmHeaders["X-DealMaker-UTM-Source"] = utmParams.utm_source
+  if (utmParams?.utm_medium) utmHeaders["X-DealMaker-UTM-Medium"] = utmParams.utm_medium
+  if (utmParams?.utm_campaign) utmHeaders["X-DealMaker-UTM-Campaign"] = utmParams.utm_campaign
+  if (utmParams?.utm_content) utmHeaders["X-DealMaker-UTM-Content"] = utmParams.utm_content
+  if (utmParams?.utm_term) utmHeaders["X-DealMaker-UTM-Term"] = utmParams.utm_term
+
   return dmFetch<DealInvestor>(`/deals/${dealId}/investors`, {
     method: "POST",
     body: JSON.stringify(data),
+    headers: utmHeaders,
   })
 }
 

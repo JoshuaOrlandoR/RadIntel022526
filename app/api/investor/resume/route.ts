@@ -26,20 +26,16 @@ export async function POST(request: Request) {
 
   try {
     const rawInvestors = await searchDealInvestors(dealId, email)
-    console.log("[v0] Raw investor search response:", JSON.stringify(rawInvestors, null, 2))
 
-    // DealMaker may return paginated { data: [...] } or a bare array
-    const raw = rawInvestors as DealInvestor[] | { data: DealInvestor[] }
-    const investors: DealInvestor[] = Array.isArray(raw) ? raw : (raw.data || [])
-    console.log("[v0] Parsed investors array:", JSON.stringify(investors, null, 2))
-    console.log("[v0] Investor states found:", investors.map((inv) => inv.state))
+    // DealMaker returns { items: [...] } for collection responses
+    const raw = rawInvestors as DealInvestor[] | { items?: DealInvestor[]; data?: DealInvestor[] }
+    const investors: DealInvestor[] = Array.isArray(raw) ? raw : (raw.items || raw.data || [])
 
-    // Find the most recent in-progress investor
-    const resumableStates = ["invited", "signed", "waiting", "accepted", "draft", "active", "pending"]
+    // Find an in-progress investor (only states where resumption makes sense)
+    const resumableStates = ["invited", "signed", "waiting"]
     const existing = investors.find((inv) =>
       inv.state && resumableStates.includes(inv.state.toLowerCase())
     )
-    console.log("[v0] Matching investor:", existing ? JSON.stringify(existing) : "none found")
 
     if (!existing) {
       return NextResponse.json({ found: false })

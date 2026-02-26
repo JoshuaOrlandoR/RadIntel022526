@@ -189,7 +189,7 @@ export function StepTwoDetails({ initialAmount, onBack, onContinue, config = FAL
                   value={resumeEmail}
                   onChange={(e) => { setResumeEmail(e.target.value); setResumeError(""); setResumeResult(null) }}
                   placeholder="Enter your email"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#c96b4b] focus:ring-2 focus:ring-[#c96b4b]/15"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-[#1a1a1a] bg-white focus:outline-none focus:border-[#c96b4b] focus:ring-2 focus:ring-[#c96b4b]/15"
                   onKeyDown={(e) => { if (e.key === "Enter") handleResumeCheck() }}
                 />
                 <button

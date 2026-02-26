@@ -26,35 +26,36 @@ export async function POST(request: Request) {
 
   try {
     const rawInvestors = await searchDealInvestors(dealId, email)
+    console.log("[v0] Raw search response:", JSON.stringify(rawInvestors))
 
     // DealMaker returns { items: [...] } for collection responses
     const raw = rawInvestors as DealInvestor[] | { items?: DealInvestor[]; data?: DealInvestor[] }
     const investors: DealInvestor[] = Array.isArray(raw) ? raw : (raw.items || raw.data || [])
+    console.log("[v0] Found investors:", investors.map(inv => ({ id: inv.id, state: inv.state, amount: inv.investment_value })))
 
-    // Find an in-progress investor (only states where resumption makes sense)
+    // Find all resumable investors
     const resumableStates = ["invited", "signed", "waiting"]
-    const existing = investors.find((inv) =>
-      inv.state && resumableStates.includes(inv.state.toLowerCase())
-    )
+    const resumableInvestors = investors
+      .filter((inv) => inv.state && resumableStates.includes(inv.state.toLowerCase()))
+      .sort((a, b) => Number(b.id) - Number(a.id)) // Most recent first
 
-    if (!existing) {
-      return NextResponse.json({ found: false })
+    if (resumableInvestors.length === 0) {
+      return NextResponse.json({ found: false, investments: [] })
     }
 
-    // Get the access link for the existing investor
-    let accessLink: string | null = null
-    try {
-      const link = await getInvestorAccessLink(dealId, existing.id)
-      accessLink = link.access_link || null
-    } catch {
-      // If we can't get the access link, still report the investor was found
-    }
+    // Return all resumable investments for user to choose
+    const investments = resumableInvestors.map((inv) => ({
+      id: inv.id,
+      state: inv.state,
+      amount: inv.investment_value,
+      shares: inv.number_of_securities,
+      name: inv.name,
+      createdAt: inv.created_at,
+    }))
 
     return NextResponse.json({
       found: true,
-      investorId: existing.id,
-      state: existing.state,
-      accessLink,
+      investments,
     })
   } catch (error) {
     console.error("Failed to search investors:", error)

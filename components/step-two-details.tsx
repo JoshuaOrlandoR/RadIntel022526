@@ -48,7 +48,11 @@ export function StepTwoDetails({ initialAmount, onBack, onContinue, config = FAL
   const [showResume, setShowResume] = useState(false)
   const [resumeEmail, setResumeEmail] = useState("")
   const [resumeLoading, setResumeLoading] = useState(false)
-  const [resumeResult, setResumeResult] = useState<{ found: boolean; accessLink?: string; state?: string } | null>(null)
+  const [resumeResult, setResumeResult] = useState<{ 
+    found: boolean
+    investments?: Array<{ id: string; state: string; amount: number; shares: number; name?: string; createdAt?: string }>
+  } | null>(null)
+  const [resumeRedirecting, setResumeRedirecting] = useState<string | null>(null)
   const [resumeError, setResumeError] = useState("")
 
   const handleResumeCheck = async () => {
@@ -68,10 +72,8 @@ export function StepTwoDetails({ initialAmount, onBack, onContinue, config = FAL
       const data = await res.json()
       if (!res.ok) {
         setResumeError(data.error || "Something went wrong. Please try again.")
-      } else if (data.found && data.accessLink) {
-        window.location.href = data.accessLink
-      } else if (data.found) {
-        setResumeResult({ found: true, state: data.state })
+      } else if (data.found && data.investments?.length > 0) {
+        setResumeResult({ found: true, investments: data.investments })
       } else {
         setResumeResult({ found: false })
       }
@@ -79,6 +81,27 @@ export function StepTwoDetails({ initialAmount, onBack, onContinue, config = FAL
       setResumeError("Unable to check. Please try again.")
     } finally {
       setResumeLoading(false)
+    }
+  }
+
+  const handleResumeSelect = async (investorId: string) => {
+    setResumeRedirecting(investorId)
+    setResumeError("")
+    try {
+      const res = await fetch(`/api/investor/resume/${investorId}`)
+      const data = await res.json()
+      if (!res.ok) {
+        setResumeError(data.error || "Unable to resume. Please try again.")
+        setResumeRedirecting(null)
+      } else if (data.accessLink) {
+        window.location.href = data.accessLink
+      } else {
+        setResumeError("Unable to get access link. Please try again.")
+        setResumeRedirecting(null)
+      }
+    } catch {
+      setResumeError("Unable to resume. Please try again.")
+      setResumeRedirecting(null)
     }
   }
 
@@ -207,14 +230,42 @@ export function StepTwoDetails({ initialAmount, onBack, onContinue, config = FAL
               {resumeResult && !resumeResult.found && (
                 <p className="text-xs text-gray-500 mt-2">No existing investment found for this email. You can start a new investment below.</p>
               )}
-              {resumeResult && resumeResult.found && !resumeResult.accessLink && (
-                <p className="text-xs text-[#c96b4b] mt-2">
-                  We found your investment (status: {resumeResult.state}), but could not generate an access link. Please contact support for assistance.
-                </p>
+              {resumeResult && resumeResult.found && resumeResult.investments && resumeResult.investments.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs text-gray-500 mb-2">
+                    {resumeResult.investments.length === 1 
+                      ? "We found your investment. Click to resume:" 
+                      : `We found ${resumeResult.investments.length} investments. Select one to resume:`}
+                  </p>
+                  {resumeResult.investments.map((inv) => (
+                    <button
+                      key={inv.id}
+                      type="button"
+                      onClick={() => handleResumeSelect(inv.id)}
+                      disabled={resumeRedirecting !== null}
+                      className="w-full p-3 border border-gray-200 rounded-lg text-left hover:border-[#c96b4b] hover:bg-[#c96b4b]/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="text-sm font-semibold text-[#1a1a1a]">
+                            ${inv.amount?.toLocaleString() || "—"}
+                          </span>
+                          <span className="text-xs text-gray-400 ml-2">
+                            ({inv.shares?.toLocaleString() || "—"} shares)
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-400 capitalize">{inv.state}</span>
+                      </div>
+                      {resumeRedirecting === inv.id && (
+                        <p className="text-xs text-[#c96b4b] mt-1">Redirecting...</p>
+                      )}
+                    </button>
+                  ))}
+                </div>
               )}
               <button
                 type="button"
-                onClick={() => { setShowResume(false); setResumeEmail(""); setResumeResult(null); setResumeError("") }}
+                onClick={() => { setShowResume(false); setResumeEmail(""); setResumeResult(null); setResumeError(""); setResumeRedirecting(null) }}
                 className="text-xs text-gray-400 hover:text-gray-600 mt-2 transition-colors"
               >
                 Cancel

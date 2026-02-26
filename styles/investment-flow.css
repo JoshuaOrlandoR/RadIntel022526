@@ -1,0 +1,298 @@
+/* Investment Flow Styles */
+
+:root {
+  /* Brand Colors */
+  --brand-rad-white: #eee9e2;
+  --brand-rad-blue: #70cddc;
+  --brand-rad-purple: #785fa9;
+  --brand-rad-grey: #4c4c4c;
+  --brand-medium-rad-blue: #00667f;
+  --brand-dark-rad-blue: #193d5b;
+  --brand-dark-rad-purple: #3c2a5f;
+  --brand-basic-white: #ffffff;
+  --brand-basic-black: #000000;
+  --brand-gauge-yellow: #c6f26b;
+
+  /* Applied Theme */
+  --inv-primary: var(--brand-medium-rad-blue);
+  --inv-primary-hover: var(--brand-dark-rad-blue);
+  --inv-primary-light: #e6f4f7;
+  --inv-primary-lighter: #f0f9fa;
+  --inv-primary-border: var(--brand-rad-blue);
+  --inv-primary-text: var(--brand-dark-rad-blue);
+
+  --inv-bg-step1: var(--brand-rad-white);
+  --inv-bg-step2: var(--brand-rad-white);
+  --inv-bg-card: var(--brand-basic-white);
+  --inv-bg-input: #f5f3f0;
+  --inv-bg-input-hover: #ebe7e1;
+
+  --inv-text-dark: var(--brand-dark-rad-blue);
+  --inv-text-medium: var(--brand-rad-grey);
+  --inv-text-light: #6b6b6b;
+  --inv-text-muted: #888888;
+  --inv-text-faint: #aaaaaa;
+
+  --inv-border: #d4d0c9;
+  --inv-border-light: #e0dcd6;
+  --inv-border-section: #e8e4de;
+
+  --inv-success: var(--brand-gauge-yellow);
+  --inv-disabled: #b8b4ae;
+  
+  /* Sizing */
+  --inv-radius-sm: 0.5rem;
+  --inv-radius-md: 0.75rem;
+  --inv-radius-lg: 1rem;
+  --inv-radius-xl: 1.5rem;
+  --inv-radius-full: 9999px;
+}
+
+
+/* Step 1 */
+
+.step1-page {
+  background-color: var(--inv-bg-step1);
+}
+
+.step1-card {
+  background-color: var(--inv-bg-card);
+  border-color: var(--inv-primary);
+}
+
+/* --- Title --- */
+.step1-title {
+  color: var(--inv-text-dark);
+}
+
+/* --- Main Input Field --- */
+.step1-input {
+  border-color: var(--inv-border);
+}
+.step1-input:focus {
+  border-color: var(--inv-primary);
+}
+
+/* --- Toggle Button ($/Shares) --- */
+.step1-input-toggle {
+  background-color: var(--inv-primary);
+}
+.step1-input-toggle:hover {
+  background-color: var(--inv-primary-hover);
+}
+
+/* --- Share Count Info --- */
+.step1-shares-info__count {
+  color: #777;
+}
+.step1-shares-info__minimum {
+  color: var(--inv-text-muted);
+}
+
+/* --- Upsell Prompt --- */
+.step1-upsell {
+  background-color: var(--inv-primary-lighter);
+  border-color: var(--inv-primary-border);
+}
+.step1-upsell__text {
+  color: var(--inv-primary-text);
+}
+.step1-upsell__action {
+  color: var(--inv-primary);
+}
+.step1-upsell__action:hover {
+  color: var(--inv-primary-hover);
+}
+
+/* --- Preset Buttons --- */
+.step1-preset--unselected {
+  background-color: var(--inv-bg-input);
+}
+.step1-preset--unselected:hover {
+  background-color: var(--inv-bg-input-hover);
+}
+.step1-preset--selected {
+  background-color: var(--inv-primary-light);
+  border-color: var(--inv-primary);
+}
+
+/* --- Radio Indicator --- */
+.step1-radio {
+  border-color: var(--inv-disabled);
+}
+.step1-radio--selected {
+  border-color: var(--inv-primary);
+}
+.step1-radio__dot {
+  background-color: var(--inv-primary);
+}
+
+/* --- Preset Text --- */
+.step1-preset__amount {
+  color: var(--inv-text-dark);
+}
+.step1-preset__shares {
+  color: var(--inv-text-light);
+}
+
+/* --- Bonus Pills --- */
+.step1-bonus-pill--primary {
+  background-color: var(--inv-primary);
+}
+.step1-bonus-pill--secondary {
+  background-color: var(--inv-primary-border);
+  color: var(--inv-primary-text);
+}
+
+/* --- Custom Amount Section --- */
+.step1-custom {
+  border-color: var(--inv-border-light);
+}
+.step1-custom__input-wrapper {
+  background-color: var(--inv-bg-input);
+}
+.step1-custom__label {
+  color: var(--inv-text-dark);
+}
+.step1-custom__input {
+  color: var(--inv-text-dark);
+}
+.step1-custom__result {
+  color: var(--inv-text-medium);
+}
+.step1-custom__bonus {
+  color: var(--inv-primary);
+}
+
+/* --- Total Shares --- */
+.step1-total__label {
+  color: var(--inv-text-medium);
+}
+.step1-total__value {
+  color: var(--inv-text-dark);
+}
+
+/* --- Disclaimer --- */
+.step1-disclaimer {
+  color: var(--inv-text-muted);
+}
+
+/* --- Continue Button --- */
+.step1-continue,
+.step1-mobile-bar__btn {
+  background-color: var(--inv-primary);
+}
+.step1-continue:hover:not(:disabled),
+.step1-mobile-bar__btn:hover:not(:disabled) {
+  background-color: var(--inv-primary-hover);
+}
+.step1-continue:disabled,
+.step1-mobile-bar__btn:disabled {
+  background-color: var(--inv-disabled);
+}
+
+/* --- Mobile Progress Bar --- */
+.step1-progress__step {
+  color: var(--inv-primary);
+}
+.step1-progress__bar {
+  background-color: #e8e4e0;
+}
+.step1-progress__fill {
+  background-color: var(--inv-primary);
+}
+
+/* --- Mobile Sticky Bar --- */
+.step1-mobile-bar {
+  background-color: var(--inv-bg-card);
+  border-color: #e8e4e0;
+}
+.step1-mobile-bar__text {
+  color: var(--inv-text-medium);
+}
+
+
+/* ==========================================================================
+   STEP 2 - INVESTMENT DETAILS
+   ========================================================================== */
+
+/* --- Page Background --- */
+.step2-page {
+  background-color: var(--inv-bg-step2);
+}
+
+/* --- Main Card --- */
+.step2-card {
+  background-color: var(--inv-bg-card);
+  border-color: var(--inv-primary);
+}
+
+/* --- Section Headers --- */
+.step2-section {
+  border-color: var(--inv-border-section);
+}
+.step2-section__title {
+  color: var(--inv-text-dark);
+}
+.step2-section__checkbox {
+  border-color: #d1d5db;
+}
+.step2-section__icon--success {
+  color: var(--inv-success);
+}
+
+/* --- Inputs --- */
+.step2-input {
+  border-color: #d1d5db;
+  color: #374151;
+}
+.step2-input:focus {
+  border-color: var(--inv-primary);
+}
+
+/* --- Bonus Info Box --- */
+.step2-bonus-info {
+  background-color: var(--inv-primary-lighter);          /* #f0f9fa - light tint */
+  border-color: var(--inv-primary-border);               /* #70cddc - Rad Blue */
+}
+.step2-bonus-info__text {
+  color: var(--inv-primary);                             /* #00667f - Medium Rad Blue */
+}
+
+/* --- Contact Fields --- */
+.step2-contact-field {
+  border-color: var(--inv-border-section);
+}
+.step2-contact-field__label {
+  color: #6b7280;
+}
+.step2-contact-field__input {
+  color: var(--inv-text-dark);
+}
+
+/* --- Contact Summary --- */
+.step2-contact-summary__label {
+  color: #6b7280;
+}
+.step2-contact-summary__value {
+  color: var(--inv-text-dark);
+}
+
+/* --- Buttons --- */
+.step2-btn {
+  background-color: var(--inv-primary);
+}
+.step2-btn:hover {
+  background-color: var(--inv-primary-hover);
+}
+
+/* --- Footer Links --- */
+.step2-footer__link {
+  color: var(--inv-primary);
+}
+.step2-footer__link:hover {
+  text-decoration: underline;
+}
+.step2-footer__separator {
+  color: #d1d5db;
+}

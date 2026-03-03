@@ -594,7 +594,8 @@ export function StepTwoDetails({ initialAmount, investorId, investorEmail, onBac
                         } else {
                           if (data.paymentUrl) {
                             // Redirect to DealMaker's hosted payment page
-                            window.location.href = data.paymentUrl
+                            // window.location.href = data.paymentUrl
+                            (window.top || window).location.href = data.paymentUrl
                           } else {
                             // Payment URL not available, show success with note
                             setSubmitSuccess(true)

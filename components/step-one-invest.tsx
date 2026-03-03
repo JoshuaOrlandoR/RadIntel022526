@@ -217,8 +217,13 @@ export function StepOneInvest({ onContinue, initialAmount, config = FALLBACK_CON
       const res = await fetch(`/api/investor/resume/${investorId}`)
       const data = await res.json()
       if (data.accessLink) {
-        // window.location.href = data.accessLink
-        (window.top || window).location.href = data.accessLink
+        // Break out of iframe if embedded
+        try {
+          window.top!.location.href = data.accessLink
+        } catch {
+          // Fallback if cross-origin restrictions block window.top access
+          window.location.href = data.accessLink
+        }
       } else {
         setSubmitError("Unable to get access link. Please try again.")
         setResumeRedirecting(null)

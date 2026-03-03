@@ -593,9 +593,13 @@ export function StepTwoDetails({ initialAmount, investorId, investorEmail, onBac
                           setSubmitError(data.error || "Failed to complete investment. Please try again.")
                         } else {
                           if (data.paymentUrl) {
-                            // Redirect to DealMaker's hosted payment page
-                            // window.location.href = data.paymentUrl
-                            (window.top || window).location.href = data.paymentUrl
+                            // Redirect to DealMaker's hosted payment page (break out of iframe if embedded)
+                            try {
+                              window.top!.location.href = data.paymentUrl
+                            } catch {
+                              // Fallback if cross-origin restrictions block window.top access
+                              window.location.href = data.paymentUrl
+                            }
                           } else {
                             // Payment URL not available, show success with note
                             setSubmitSuccess(true)

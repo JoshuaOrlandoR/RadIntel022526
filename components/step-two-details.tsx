@@ -61,8 +61,8 @@ export function StepTwoDetails({ initialAmount, investorId, investorEmail, onBac
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState("")
   const [submitSuccess, setSubmitSuccess] = useState(false)
-  const [contactErrors, setContactErrors] = useState<{ firstName?: string; lastName?: string; email?: string }>({})
-  const [contactTouched, setContactTouched] = useState<{ firstName?: boolean; lastName?: boolean; email?: boolean }>({})
+  const [contactErrors, setContactErrors] = useState<{ firstName?: string; lastName?: string; phoneNumber?: string }>({})
+  const [contactTouched, setContactTouched] = useState<{ firstName?: boolean; lastName?: boolean; phoneNumber?: boolean }>({})
 
   const calculation = calculateInvestment(amount, config)
 
@@ -72,15 +72,15 @@ export function StepTwoDetails({ initialAmount, investorId, investorEmail, onBac
     const errors: typeof contactErrors = {}
     if (!firstName.trim()) errors.firstName = "First name is required"
     if (!lastName.trim()) errors.lastName = "Last name is required"
-    // Email is pre-filled from Step 1, no need to validate
+    if (!phoneNumber.trim()) errors.phoneNumber = "Phone number is required"
     setContactErrors(errors)
-    setContactTouched({ firstName: true, lastName: true })
+    setContactTouched({ firstName: true, lastName: true, phoneNumber: true })
     return Object.keys(errors).length === 0
   }
 
   const isContactComplete = (() => {
-    // Email is pre-filled from Step 1, just need name fields
-    const baseComplete = firstName.trim() !== "" && lastName.trim() !== ""
+    // Email is pre-filled from Step 1, need name and phone fields
+    const baseComplete = firstName.trim() !== "" && lastName.trim() !== "" && phoneNumber.trim() !== ""
     if (!baseComplete) return false
     switch (investorType) {
       case "joint": return jointFirstName.trim() !== "" && jointLastName.trim() !== ""
@@ -359,11 +359,27 @@ export function StepTwoDetails({ initialAmount, investorId, investorEmail, onBac
                           // Only allow numbers, spaces, dashes, parentheses, and plus sign
                           const cleaned = e.target.value.replace(/[^\d\s\-()+ ]/g, "")
                           setPhoneNumber(cleaned)
+                          if (contactTouched.phoneNumber) {
+                            if (!cleaned.trim()) {
+                              setContactErrors((prev) => ({ ...prev, phoneNumber: "Phone number is required" }))
+                            } else {
+                              setContactErrors((prev) => ({ ...prev, phoneNumber: undefined }))
+                            }
+                          }
                         }}
-                        placeholder="Phone Number"
+                        onBlur={() => {
+                          setContactTouched((prev) => ({ ...prev, phoneNumber: true }))
+                          if (!phoneNumber.trim()) {
+                            setContactErrors((prev) => ({ ...prev, phoneNumber: "Phone number is required" }))
+                          }
+                        }}
+                        placeholder="Phone Number *"
                         className="step2-contact-field__input text-left bg-transparent border-none text-[#1a1a1a] text-base focus:outline-none w-full placeholder:text-gray-400"
                       />
                     </div>
+                    {contactTouched.phoneNumber && contactErrors.phoneNumber && (
+                      <p className="text-xs text-red-500 mt-1">{contactErrors.phoneNumber}</p>
+                    )}
                   </div>
                   <div>
                     <div className="step2-contact-field py-2 border-b border-[#f3f4f6]">

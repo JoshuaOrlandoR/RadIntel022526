@@ -489,6 +489,10 @@ export function StepTwoDetails({ initialAmount, investorId, investorEmail, onBac
                     <span className="step2-contact-summary__label text-gray-500">Email</span>
                     <span className="step2-contact-summary__value text-[#1a1a1a]">{email || "—"}</span>
                   </div>
+                  <div className="step2-contact-summary__row flex justify-between text-sm">
+                    <span className="step2-contact-summary__label text-gray-500">Phone</span>
+                    <span className="step2-contact-summary__value text-[#1a1a1a]">{phoneNumber || "—"}</span>
+                  </div>
                   {investorType === "joint" && (
                     <div className="step2-contact-summary__row flex justify-between text-sm">
                       <span className="step2-contact-summary__label text-gray-500">Joint Holder</span>

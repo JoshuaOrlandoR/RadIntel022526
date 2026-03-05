@@ -52,6 +52,7 @@ export function StepTwoDetails({ initialAmount, investorId, investorEmail, onBac
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState(investorEmail || "")
+  const [phoneNumber, setPhoneNumber] = useState("")
   // Type-specific fields
   const [jointFirstName, setJointFirstName] = useState("")
   const [jointLastName, setJointLastName] = useState("")
@@ -352,6 +353,21 @@ export function StepTwoDetails({ initialAmount, investorId, investorEmail, onBac
                   <div>
                     <div className="step2-contact-field py-2 border-b border-[#f3f4f6]">
                       <input
+                        type="tel"
+                        value={phoneNumber}
+                        onChange={(e) => {
+                          // Only allow numbers, spaces, dashes, parentheses, and plus sign
+                          const cleaned = e.target.value.replace(/[^\d\s\-()+ ]/g, "")
+                          setPhoneNumber(cleaned)
+                        }}
+                        placeholder="Phone Number"
+                        className="step2-contact-field__input text-left bg-transparent border-none text-[#1a1a1a] text-base focus:outline-none w-full placeholder:text-gray-400"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="step2-contact-field py-2 border-b border-[#f3f4f6]">
+                      <input
                         type="email"
                         value={email}
                         readOnly
@@ -582,6 +598,7 @@ export function StepTwoDetails({ initialAmount, investorId, investorEmail, onBac
                             email,
                             firstName,
                             lastName,
+                            phoneNumber,
                             investorType,
                             ...(investorType === "joint" && { jointFirstName, jointLastName }),
                             ...(investorType === "corporation" && { corporationName }),

@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   const dealId = process.env.DEALMAKER_DEAL_ID!
   const body = await request.json()
 
-  const { investorId: rawInvestorId, email, firstName, lastName, investorType, jointFirstName, jointLastName, corporationName, trustName } = body
+  const { investorId: rawInvestorId, email, firstName, lastName, phoneNumber, investorType, jointFirstName, jointLastName, corporationName, trustName } = body
 
   if (!rawInvestorId || !email || !firstName || !lastName) {
     return NextResponse.json(
@@ -41,6 +41,11 @@ export async function POST(request: Request) {
     // Build the proper profile based on investor type
     const type: InvestorType = investorType || "individual"
     let profileData: Record<string, unknown> = { email }
+
+    // Add phone number if provided (strip non-numeric for API)
+    if (phoneNumber) {
+      profileData.phone_number = phoneNumber
+    }
 
     switch (type) {
       case "individual":
